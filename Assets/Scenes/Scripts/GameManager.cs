@@ -14,57 +14,26 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         GameIsOver = false;
-        try
-        {
-            Handler handler = new DesktopHandler(new DLV2DesktopService("../../../executable/dlv2.win"));
-
-            ASPMapper.Instance.RegisterClass(typeof(Prova));
-            ASPMapper.Instance.RegisterClass(typeof(Res));
-
-            InputProgram input = new ASPInputProgram();
-
-            string rules = "res(Y) | notres(Y):- prova(_,Y). :~ res(Y).[Y@1]";
-
-            input.AddProgram(rules);
-
-            input.AddObjectInput(new Prova("1","2"));
-            input.AddObjectInput(new Prova("1", "3"));
-
-            handler.AddProgram(input);
-
-            AnswerSets answerSets = (AnswerSets)handler.StartSync();
-
-            foreach (AnswerSet answerSet in answerSets.GetOptimalAnswerSets())
-            {
-
-            }
-            //Debug.Log(answerSets.GetOptimalAnswerSets().Count);
-        }
-        catch (System.Exception e)
-        {
-            Debug.Log(e.Source);
-            Debug.Log(e.StackTrace);
-        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(GameIsOver)
+        if (GameIsOver)
             return;
 
         //Function to manually end the game by pressing "e" for test purpouses
-        if(Input.GetKeyDown("e"))
+        if (Input.GetKeyDown("e"))
         {
             EndGame();
         }
 
-        if(PlayerStats.Lives <= 0)
+        if (PlayerStats.Lives <= 0)
         {
             EndGame();
         }
 
-        if(WaveSpawner.GameCompleted && WaveSpawner.EnemiesAlive == 0)
+        if (WaveSpawner.GameCompleted && WaveSpawner.EnemiesAlive == 0)
         {
             EndGame();
         }
@@ -73,7 +42,58 @@ public class GameManager : MonoBehaviour
     void EndGame()
     {
         GameIsOver = true;
-        
+
         gameOverUI.SetActive(true);
+    }
+
+    void EmbASP()
+    {
+        try
+        {
+            Handler handler = new DesktopHandler(new DLV2DesktopService(Application.dataPath + "/dlv-2.1.1-win64.exe"));
+
+            ASPMapper.Instance.RegisterClass(typeof(Torre));
+            ASPMapper.Instance.RegisterClass(typeof(Res));
+            ASPMapper.Instance.RegisterClass(typeof(NotRes));
+
+            InputProgram input = new ASPInputProgram();
+
+            //string rules = "res(Y) | notres(Y):- prova(_,Y). :~ res(Y).[Y@1]";
+
+            string rules = "livelloTorretta(L,T):- torre(1,T,L,_,_,_)." +
+                   "moneteSpese(MS):- #sum{CostoTorre,Piattaforma : attivata(Piattaforma), torre(_,Piattaforma,_,_,CostoTorre,_)} = MS1."
+                   +
+                   "attivata(Piattaforma) | nonAttivata(Piattaforma):- torre(0,Piattaforma,_,_,CostoTorre,_), monete(M), CostoTorre <= M."
+                   +
+                   ":- monete(M), moneteSpese(MS), MS > M.";
+
+            input.AddProgram(rules);
+
+            input.AddObjectInput(new Prova(1, 2));
+            input.AddObjectInput(new Prova(1, 3));
+
+            handler.AddProgram(input);
+
+            AnswerSets answerSets = (AnswerSets)handler.StartSync();
+
+            foreach (AnswerSet answerSet in answerSets.GetOptimalAnswerSets())
+            {
+                foreach (object obj in answerSet.Atoms)
+                {
+                    //Debug.Log(typeof(obj));
+                    if (obj is NotRes)
+                    {
+                        NotRes res = (NotRes)obj;
+                        Debug.Log(res.toString());
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.Log("------------------------------------------ ERROR ------------------------------------------");
+            Debug.Log(e.Source);
+            Debug.Log(e.StackTrace);
+        }
     }
 }
